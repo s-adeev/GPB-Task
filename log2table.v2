@@ -1,0 +1,58 @@
+#! /usr/bin/perl
+BEGIN {
+	if (!@ARGV) { print "Use: ./log2table ./log/file.log\n"; exit } # запускаем только с аргументами
+}
+#~ use Data::Dumper; $Data::Dumper::Sortkeys = 1;
+use Pm::cfg;	cfg->import;
+use Pm::dbb;	dbb->import;
+$| = 1;
+
+for (@ARGV) { print "Can`t find file '$_'\n" and exit unless -e $_ }
+
+our $dbberr;
+
+my	$cfg = getCfg();							
+my	$dbh = dbb_connect($cfg->{'mysql'});	
+my	$cnum= $cfg->{'mysql'}->{check_lines} || 5;
+
+die $dbberr if !$dbh || $dbberr;
+
+my	@log;
+while(<>) {	
+	s/\cM\n//;												# win конец строки
+	s/[\r\n]+$//;											# chmop() срезает только \n 
+	if (/^([\d-]+ [\d:]+) (\S+) ([=<]=|[=-]>|\*\*) /) {		# забираем только полезные строки с флагами 
+		my ($time,$int_id,$flag,$str,  $id,$mail) = ($1,$2,$3,$');
+		$id   = $1 if $str =~ / id=(\S+)/;
+		$mail = $1 if $str =~ /^(\S+@\S+)/;					#print "($time,$int_id,$flag,$str,  $id,$mail)\n";
+		push @log, [$time, $id, $int_id, $mail, $flag, $str];
+		
+		$cnum-- if dbb_getdb( $dbh
+					,"SELECT * FROM log_v2 WHERE int_id=? AND created=? AND address=? AND flag=?"
+					,[$int_id, $time, $mail, $flag]);
+		print "WARNING: The file has already been uploaded\n" # $cnum записей уже есть в базе => мы уже лили этот файл
+			and dbb_disconnect($dbh) 
+			and exit 
+			if !$cnum;
+
+# меняем на вариант ниже  
+#~ 		my  $n = dbb_setdb($dbh 
+#~ 							,"INSERT INTO log_v2 (created, id, int_id, address, flag, str) VALUES (?,?,?,?,?,?)"
+#~ 							,[$time, $id, $int_id, $mail, $flag, $str]);
+#~ 		print $dbberr."\n" if !defined $n && $dbberr;
+	}
+}
+# Test:
+#~ INSERT 7_500 lines: 
+#~ INSERT INTO            = real    1m16.005s
+#~ LOAD DATA LOCAL INFILE = real    0m00.250s
+
+# заливка локальным файлом 
+# надо быть аккуратным к заливке не уникальных ключей, будут дубликаты => перед этим проверка и контроль разработчика
+dbb_setdb_over_file($dbh,'log_v2', [created, id, int_id, address, flag, str], \@log) if @log;
+print $dbberr."\n" if $dbberr;
+
+dbb_disconnect($dbh) if $dbh;
+ 
+
+1

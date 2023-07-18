@@ -1,0 +1,60 @@
+#! /usr/bin/perl
+BEGIN {
+	my 	$uname = `uname -s`;
+	my  $os = 'UNKNOWN';
+	    $os = 'Linux'	if $uname =~ /Linux/i;
+	    $os = 'Cygwin' 	if $uname =~ /Cygwin/i;
+	    $os = 'Mac' 	if $uname =~ /Darwin/i;
+	    $os = 'MinGw' 	if $uname =~ /MinGw/i;
+	    $os = 'Git' 	if $uname =~ /MSYS_NT/i;
+	    $os = 'Solaris' if $uname =~ /SOLARIS/i;
+
+	if ($os eq 'Linux') {
+		my $rel = `cat /etc/*rel* 2>/dev/null | egrep -v '#|^\$' `;
+		$os = 'RH' 		if $rel =~ /REDHAT|FEDORA|CENTOS/si;
+		$os = 'Debian' 	if $rel =~ /DEBIAN|UBUNTU/si;
+	}
+
+	my $sudo = $> ? 'sudo' : ''; # uid 0 == root
+
+	eval "require DBI";
+	if ($@) {
+		system($sudo."yum     -y install perl-DBI perl-DBD-MySQL") 		   	if $os eq 'RH';
+		system($sudo."apt-get -y install libdbi-perl libmysqlclient-dev") 	if $os eq 'Debian';
+	}
+
+	eval "require DBD::mysql";
+	if ($@) {
+		system($sudo."yum     -y install perl-DBD-MySQL") 	   	if $os eq 'RH';
+		system($sudo."apt-get -y install libmysqlclient-dev")	if $os eq 'Debian';
+	}
+
+}
+use Pm::cfg;	cfg->import;
+use Pm::dbb;	dbb->import;
+
+our $dbberr;
+
+my  $cfg = getCfg();
+my 	$db  = $cfg->{'mysql'}->{'db'};
+my 	$deft= $cfg->{'mysql'}->{'default_tab'}; # файл с базовыми CREATE TABLE 
+
+my 	$dbh = dbb_connect($cfg->{'mysql'});	# проверка на доступ с выданными правами через DBI 
+
+die $dbberr if !$dbh && $dbberr;
+
+my	$user;
+	$user .= " -u".$cfg->{'mysql'}->{'login'} if $cfg->{'mysql'}->{'login'};
+	$user .= " -p".$cfg->{'mysql'}->{'pass' } if $cfg->{'mysql'}->{'pass' };
+
+my	@tab = `mysqlshow $db $user`;	# Смотрим какие таблицы есть в базе
+my  @tables = qw(message log log_v2);
+my	$tables_ok = 0;
+/ $_ / ~~ \@tab and $tables_ok++ for @tables;
+	
+`mysql $db $user < $deft` if -e $deft && $tables_ok != @tables; # добавляем недостающих таблиц IF NOT EXISTS
+
+print `mysqlshow $db $user`; # что получилось 
+
+
+exit 0

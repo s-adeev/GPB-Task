@@ -1,0 +1,49 @@
+#! /usr/bin/perl
+BEGIN {
+	if (!@ARGV) { print "Use: ./log2table ./log/file.log\n" and exit }	# запускаем только с аргументами
+}
+#~ use Data::Dumper; $Data::Dumper::Sortkeys = 1;
+use Pm::cfg;	cfg->import;
+use Pm::dbb;	dbb->import;
+
+for (@ARGV) {
+	print "Can`t find file '$_'\n" and exit unless -e $_	# проверит что файл лога сущесвует 
+}
+
+
+our $dbberr; # global DB-ERROR
+
+my $cfg = getCfg();
+my $dbh = dbb_connect($cfg->{'mysql'});
+
+die $dbberr if !$dbh || $dbberr;
+
+# в <> по умолчанию попадает по очереди список файлов из командной строки @ARGV 
+# если он пуст то ждет <STDIN> но мы этот вариант отсекли выше					
+
+while(<>) {	
+	s/\cM\n//;												# win конец строки
+	s/[\r\n]+$//;											# chmop() срезает только \n 
+	if (/^([\d-]+ [\d:]+) (\S+) ([=<]=|[=-]>|\*\*) /) {		# забираем только полезные строки  с флагами 
+		my ($time,$int_id,$flag,$str,  $id,$mail) = ($1,$2,$3,$');
+		$id   = $1 if $str =~ / id=(\S+)/;
+		$mail = $1 if $str =~ /^(\S+@\S+)/;
+		my  $n = $flag eq '<=' ? 
+			dbb_setdb($dbh, 
+				 "INSERT INTO message "
+				."(created, id, int_id, str) "
+				."VALUES (?,?,?,?)", 
+				[$time, $id, $int_id, $flag.' '.$str]
+			) :
+			dbb_setdb($dbh, 
+				 "INSERT INTO log "
+				."(created, address, int_id, str) "
+				."VALUES (?,?,?,?)", 
+				[$time, $mail, $int_id, $flag.' '.$str]
+			);
+		print $dbberr."\n" if !defined $n && $dbberr; # в $n кол-во внесенных строк 
+	}
+}
+
+ dbb_disconnect($dbh) if $dbh;
+ 
