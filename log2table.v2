@@ -7,7 +7,7 @@ use Pm::cfg;	cfg->import;
 use Pm::dbb;	dbb->import;
 $| = 1;
 
-for (@ARGV) { print "Can`t find file '$_'\n" and exit unless -e $_ }
+for (@ARGV) { print "Can`t find file '$_'\n" and exit unless -e $_ } # проверить что файл лога сущесвует 
 
 our $dbberr;
 
