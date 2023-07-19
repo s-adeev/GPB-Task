@@ -5,11 +5,9 @@ BEGIN {
 #~ use Data::Dumper; $Data::Dumper::Sortkeys = 1;
 use Pm::cfg;	cfg->import;
 use Pm::dbb;	dbb->import;
+$| = 1;
 
-for (@ARGV) {
-	print "Can`t find file '$_'\n" and exit unless -e $_	# проверит что файл лога сущесвует 
-}
-
+for (@ARGV) { print "Can`t find file '$_'\n" and exit unless -e $_ }	# проверит что файл лога сущесвует 
 
 our $dbberr; # global DB-ERROR
 
