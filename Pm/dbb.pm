@@ -30,10 +30,10 @@ sub dbb_connect {
 
     eval {
         local $SIG{ALRM} = sub { print "timeout occurred\n" }; # сократить timeout на connect 
-        my $TO  = alarm;
+        my $TO  = alarm;	# запоминием внешний таймер если во внешней программе выставлялся alarm()
         alarm 3; 
         $DBH = DBI->connect('DBI:mysql:'.$db.';'.$host, $login,$pass); 
-        alarm $TO;
+        alarm $TO;			# вернуть старый
     };
 
     if ($@ && $@=~/timeout/) {    # timeout коннекта
@@ -50,13 +50,9 @@ $DBH
 }
 
 
-
-
 sub dbb_disconnect {
 	$_[0]->disconnect()
 }
-
-
 
 sub dbb_getdb {
     $::dbberr = undef;
@@ -119,45 +115,24 @@ sub dbb_setdb_over_file {	# для LOAD DATA LOCAL нужен полный пу�
 	my	$rv = $DBH->do($sql);
         $::dbberr= $DBH->errstr;
 	unlink $file;
-	
 $rv
 }
 
 
 
-
-
-
-
-
-
-
-
-
 #~ $sql = $dbh->quote($string)
-my %q2qq = ('"' => "'", "'" => '"' );
 sub dbb_cropSQL { 				# срезать попытки инжекторов в тексте '...'
         my $str = $_[0];
         my $q   = $_[1] || "'"; # внешние кавычки 		
         my $sm  = $_[2] || 1;	# срезать все правее ';'
 
-        $q = $q2qq[$q];
-        $str =~ s/[$q ](UNION|GROUP|OR|SELECT|DELETE|DROP|TRUNCATE|--)[$q ].*$//i;
-        $str =~ s/;.*$// if $sm;    # ;... => ''
+        $str =~ s/ --+/-/s;		# -- comment
+        $str =~ s/[$q ]+(UNION|GROUP|OR|SELECT|DELETE|DROP|TRUNCATE)['" ].*$//si; # ' OR 1
+        $str =~ s/;.*$//s if $sm; # ;... => ''
 
 return  $str if defined wantarray;	# возвращаем $str 
 $_[0] = $str;						# или заменяем первый аргумент 
 }
 
 
-
-
-
-
-
-
-
-
-
-1;
-
+1
