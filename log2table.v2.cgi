@@ -15,7 +15,6 @@ my 	%w; $w{$_} = param $_ for param;	# global %w <= GET,PUT parametrs
 
 load_file() and exit if $w{'FILE_L'} && !$w{'Send'}; # залить через web файл лога 
 
-
 print "Content-type: text/html\n\n";
 print <DATA>;
 
@@ -43,14 +42,13 @@ my	$plh = 'Find e-mail@address';
 print "
 <form ".		  "name=forma id=forma action=log2table.v2.cgi method=POST enctype='multipart/form-data'>
 <div class=headcontainer>
-<div id=div_find>
-<input type=text   name=addr id=addr placeholder='$plh' size=40 value='".$w{addr}."'>
-<input type=submit name=Send value=Find></div>
-<div id=div_txt style='width:200px;padding:0px 0px 0px 20px'>Select FILEs or drag-and-drop file to button &#9654;
-</div>	
-<div id=div_file>
-<INPUT type=file   name=FILE_L size=30 maxlength=30 multiple>
-<input type=button name=btnSubmit id=btnSubmit value='Load File'></div>
+	<div id=div_find>
+		<input type=text   name=addr id=addr placeholder='$plh' size=40 value='".$w{addr}."'>
+		<input type=submit name=Send value=Find></div>
+	<div id=div_txt style='width:200px;padding:0px 0px 0px 20px'>Select FILEs or drag-and-drop file to button &#9654;</div>	
+	<div id=div_file>
+		<INPUT type=file   name=FILE_L size=30 maxlength=30 multiple>
+		<input type=button name=btnSubmit id=btnSubmit value='Load File'></div>
 </div><br>	
 <table border=0 class=tabin>
 ";
@@ -70,8 +68,6 @@ print "<script>dbout('Find $find_lines lines',10)</script>\n" if $find_lines <= 
 print "<script>dbout('Find more then 100 lines',15,'infowarning')</script>\n" if $find_lines > 100;
 	
 
-
-
 sub load_file {
 	print "Content-type: text/html\n\n// js\n/*\n";
 	my	@files;
@@ -82,7 +78,7 @@ sub load_file {
 		printf "*/\n alert('Can`t write to $dir:%04o');\n", $dirmode & 07777; 
 		exit
 	}
-	
+
 	$query->import_names(); 							# for MULTIPLE Files
 	for my  $file (@Q::FILE_L) {						# <input file name	
 		my  $tmpfile = $query->tmpFileName($file); 		# tmp file			
