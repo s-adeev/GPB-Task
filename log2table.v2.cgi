@@ -36,7 +36,6 @@ my	@log  = dbb_getdb($dbh,"SELECT * FROM log_v2 WHERE address LIKE ? ORDER BY in
 #~ 	@log;
 my	$find_lines = @log;				# запомнить сколько было 
 	$#log = $page-1 if @log > $page;# усекаем до 100
-	
 
 my	$plh = 'Find e-mail@address';
 print "
