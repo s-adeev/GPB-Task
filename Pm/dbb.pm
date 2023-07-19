@@ -110,7 +110,7 @@ sub dbb_setdb_over_file {	# для LOAD DATA LOCAL нужен полный пу�
 	my	$data = shift;  # данные
 	
 	my	$pwd = `pwd`; $pwd =~ s/[\r\n]+$//;
-	my	$file = $pwd.'/log/'.$$.'_'.int(rand(100)).'.tmp';			
+	my	$file = $pwd.'/log/'.$$.'.tmp';			
 	open  OF, "> $file";
 	print OF join("\t",@$_)."\n" for @$data; # генерим файл с данными сразделиелем \t
 	close OF;
